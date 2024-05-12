@@ -16,9 +16,12 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.hbb20.CountryCodePicker;
 
 public class LoginUsernameActivity extends AppCompatActivity {
 
+
+    CountryCodePicker countryCode;
     EditText usernameInput;
     Button letMeInBtn;
     ProgressBar progressBar;

@@ -9,6 +9,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 
+import com.example.easychat.papago_trans.SelectLanguage;
 import com.hbb20.CountryCodePicker;
 
 public class LoginPhoneNumberActivity extends AppCompatActivity {
@@ -36,11 +37,15 @@ public class LoginPhoneNumberActivity extends AppCompatActivity {
                 phoneInput.setError("Phone number not valid");
                 return;
             }
+
+            String countryCode = countryCodePicker.getSelectedCountryCode(); // 국가 코드 가져오기
+            SelectLanguage selectLanguage = new SelectLanguage(countryCode);
+
             Intent intent = new Intent(LoginPhoneNumberActivity.this,LoginOtpActivity.class);
             intent.putExtra("phone",countryCodePicker.getFullNumberWithPlus());
             startActivity(intent);
         });
-    }
 
+    }
 
 }
