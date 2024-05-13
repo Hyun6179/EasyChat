@@ -8,16 +8,20 @@ public class UserModel {
     private Timestamp createdTimestamp;
     private String userId;
     private String fcmToken;
+    private String countryCode;
 
     public UserModel() {
     }
 
-    public UserModel(String phone, String username, Timestamp createdTimestamp,String userId) {
+    public UserModel(String phone, String username, Timestamp createdTimestamp, String userId, String countryCode) {
         this.phone = phone;
         this.username = username;
         this.createdTimestamp = createdTimestamp;
         this.userId = userId;
+        this.countryCode = countryCode;
     }
+
+
 
     public String getPhone() {
         return phone;

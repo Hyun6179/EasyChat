@@ -44,7 +44,7 @@ public class SelectLanguage extends LoginPhoneNumberActivity{
         }
 
 
-        String languageCode = getLanguageCodeFromCountryCode(countryCode); // 국가코드에서 언어코드 가져오기
+        String languageCode = getLanguageCodeFromCountryCode(countryCode); // 국가코드에서 언어코드 가져오기, languageCode = 언어코드
 
         public String getLanguageCodeFromCountryCode(String countryCode) {
                 switch (countryCode) {
