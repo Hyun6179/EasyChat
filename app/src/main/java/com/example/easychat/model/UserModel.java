@@ -62,4 +62,6 @@ public class UserModel {
     public void setFcmToken(String fcmToken) {
         this.fcmToken = fcmToken;
     }
+
+
 }

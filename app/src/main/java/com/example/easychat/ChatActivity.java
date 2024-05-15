@@ -49,6 +49,7 @@ public class ChatActivity extends AppCompatActivity {
     String chatroomId;
     ChatroomModel chatroomModel;
     ChatRecyclerAdapter adapter;
+    String countryCode;
 
     EditText messageInput;
     ImageButton sendMessageBtn;
@@ -66,6 +67,7 @@ public class ChatActivity extends AppCompatActivity {
         //get UserModel
         otherUser = AndroidUtil.getUserModelFromIntent(getIntent());
         chatroomId = FirebaseUtil.getChatroomId(FirebaseUtil.currentUserId(),otherUser.getUserId());
+
 
         messageInput = findViewById(R.id.chat_message_input);
         sendMessageBtn = findViewById(R.id.message_send_btn);
@@ -91,7 +93,7 @@ public class ChatActivity extends AppCompatActivity {
             String message = messageInput.getText().toString().trim();
             if(message.isEmpty())
                 return;
-            sendMessageToUser(message);
+            sendMessageToUser(message, countryCode);
         }));
 
         getOrCreateChatroomModel();
@@ -120,21 +122,36 @@ public class ChatActivity extends AppCompatActivity {
         });
     }
 
-    void sendMessageToUser(String message){
+    void sendMessageToUser(String message, String countryCode) {
+        String userID = FirebaseUtil.currentUserId();
+        DocumentReference userRef = FirebaseUtil.getUserReference(userID);
 
-        chatroomModel.setLastMessageTimestamp(Timestamp.now());
-        chatroomModel.setLastMessageSenderId(FirebaseUtil.currentUserId());
-        chatroomModel.setLastMessage(message);
-        FirebaseUtil.getChatroomReference(chatroomId).set(chatroomModel);
-
-        ChatMessageModel chatMessageModel = new ChatMessageModel(message,FirebaseUtil.currentUserId(),Timestamp.now());
-        FirebaseUtil.getChatroomMessageReference(chatroomId).add(chatMessageModel)
-                .addOnCompleteListener(new OnCompleteListener<DocumentReference>() {
+        userRef.update("countryCode", countryCode)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
-                    public void onComplete(@NonNull Task<DocumentReference> task) {
-                        if(task.isSuccessful()){
-                            messageInput.setText("");
-                            sendNotification(message);
+                    public void onComplete(@NonNull Task<Void> task) {
+                        if (task.isSuccessful()) {
+                            Log.d("Firestore", "Country code updated successfully");
+
+                            chatroomModel.setLastMessageTimestamp(Timestamp.now());
+                            chatroomModel.setLastMessageSenderId(FirebaseUtil.currentUserId());
+                            chatroomModel.setLastMessage(message);
+                            FirebaseUtil.getChatroomReference(chatroomId).set(chatroomModel);
+
+                            ChatMessageModel chatMessageModel = new ChatMessageModel(message, FirebaseUtil.currentUserId(), Timestamp.now());
+                            FirebaseUtil.getChatroomMessageReference(chatroomId).add(chatMessageModel)
+                                    .addOnCompleteListener(new OnCompleteListener<DocumentReference>() {
+                                        @Override
+                                        public void onComplete(@NonNull Task<DocumentReference> task) {
+                                            if (task.isSuccessful()) {
+                                                messageInput.setText("");
+                                                sendNotification(message);
+
+                                            }
+                                        }
+                                    });
+                        } else {
+                            Log.e("Firestore", "Failed to updated country code", task.getException());
                         }
                     }
                 });

@@ -6,7 +6,6 @@ public class SelectLanguage extends LoginPhoneNumberActivity{
         private Language sourceLang;
         private Language targetLang;
         private String message;
-
         private String countryCode;
 
         public SelectLanguage(String countryCode) {

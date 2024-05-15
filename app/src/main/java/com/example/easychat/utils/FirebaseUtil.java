@@ -77,8 +77,10 @@ public class FirebaseUtil {
         return FirebaseStorage.getInstance().getReference().child("profile_pic")
                 .child(otherUserId);
     }
-
-
+    // 추가: 사용자 문서 참조를 반환하는 메서드
+    public static DocumentReference getUserReference(String userId) {
+        return FirebaseFirestore.getInstance().collection("users").document(userId);
+    }
 }
 
 
