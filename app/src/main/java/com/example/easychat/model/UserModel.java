@@ -1,6 +1,7 @@
 package com.example.easychat.model;
 
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.DocumentReference;
 
 public class UserModel {
     private String phone;
@@ -9,6 +10,7 @@ public class UserModel {
     private String userId;
     private String fcmToken;
     private String countryCode;
+    private DocumentReference countryCodeRef;
 
     public UserModel() {
     }
@@ -63,5 +65,20 @@ public class UserModel {
         this.fcmToken = fcmToken;
     }
 
+    public String getCountryCode() {
+        return countryCode;
+    }
 
+    public void setCountryCode(String countryCode) {
+        this.countryCode = countryCode;
+    }
+
+
+    public DocumentReference getCountryCodeRef() {
+        return countryCodeRef;
+    }
+
+    public void setCountryCodeRef(DocumentReference countryCodeRef) {
+        this.countryCodeRef = countryCodeRef;
+    }
 }

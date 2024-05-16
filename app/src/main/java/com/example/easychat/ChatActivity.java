@@ -18,6 +18,7 @@ import com.example.easychat.adapter.SearchUserRecyclerAdapter;
 import com.example.easychat.model.ChatMessageModel;
 import com.example.easychat.model.ChatroomModel;
 import com.example.easychat.model.UserModel;
+import com.example.easychat.papago_trans.SelectLanguage;
 import com.example.easychat.utils.AndroidUtil;
 import com.example.easychat.utils.FirebaseUtil;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
@@ -49,7 +50,6 @@ public class ChatActivity extends AppCompatActivity {
     String chatroomId;
     ChatroomModel chatroomModel;
     ChatRecyclerAdapter adapter;
-    String countryCode;
 
     EditText messageInput;
     ImageButton sendMessageBtn;
@@ -89,12 +89,43 @@ public class ChatActivity extends AppCompatActivity {
         });
         otherUsername.setText(otherUser.getUsername());
 
-        sendMessageBtn.setOnClickListener((v -> {
+        sendMessageBtn.setOnClickListener(v -> {
             String message = messageInput.getText().toString().trim();
-            if(message.isEmpty())
+            if (message.isEmpty()) {
                 return;
-            sendMessageToUser(message, countryCode);
-        }));
+            }
+
+            // Firestore에서 currentUserId에 대한 UserModel 데이터를 가져오는 코드
+            FirebaseUtil.getUserReference(FirebaseUtil.currentUserId())
+                    .get()
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            DocumentSnapshot document = task.getResult();
+                            UserModel userModel = document.toObject(UserModel.class);
+
+                            if (userModel != null && userModel.getCountryCodeRef() != null) {
+                                userModel.getCountryCodeRef().get().addOnCompleteListener(countryTask -> {
+                                    if (countryTask.isSuccessful() && countryTask.getResult() != null) {
+                                        DocumentSnapshot countryDocument = countryTask.getResult();
+                                        String countryCode = countryDocument.getString("countryCode"); // 실제 필드 이름에 따라 변경 필요
+                                        if (countryCode != null) {
+                                            sendMessageToUser(message, countryCode);
+                                        } else {
+                                            Log.e("Firestore", "Country code is null");
+                                        }
+                                    } else {
+                                        Log.e("Firestore", "Failed to get country code document", countryTask.getException());
+                                    }
+                                });
+                            } else {
+                                Log.e("Firestore", "User model or countryCodeRef is null");
+                            }
+                        } else {
+                            Log.e("Firestore", "Failed to get user document", task.getException());
+                        }
+                    });
+        });
+
 
         getOrCreateChatroomModel();
         setupChatRecyclerView();
@@ -146,16 +177,16 @@ public class ChatActivity extends AppCompatActivity {
                                             if (task.isSuccessful()) {
                                                 messageInput.setText("");
                                                 sendNotification(message);
-
                                             }
                                         }
                                     });
                         } else {
-                            Log.e("Firestore", "Failed to updated country code", task.getException());
+                            Log.e("Firestore", "Failed to update country code", task.getException());
                         }
                     }
                 });
     }
+
 
     void getOrCreateChatroomModel(){
         FirebaseUtil.getChatroomReference(chatroomId).get().addOnCompleteListener(task -> {

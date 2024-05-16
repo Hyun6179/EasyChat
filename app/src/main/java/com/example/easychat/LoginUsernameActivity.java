@@ -21,7 +21,6 @@ import com.hbb20.CountryCodePicker;
 public class LoginUsernameActivity extends AppCompatActivity {
 
 
-    CountryCodePicker countryCode;
     EditText usernameInput;
     Button letMeInBtn;
     ProgressBar progressBar;
