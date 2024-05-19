@@ -3,8 +3,8 @@ package com.example.easychat.papago_trans;
 import com.example.easychat.LoginPhoneNumberActivity;
 
 public class SelectLanguage extends LoginPhoneNumberActivity{
-        private Language sourceLang;
-        private Language targetLang;
+        private String targetLang;
+        private String sourceLang;
         private String message;
         private String countryCode;
 
@@ -12,28 +12,23 @@ public class SelectLanguage extends LoginPhoneNumberActivity{
                 this.countryCode = countryCode;
         }
 
-        public SelectLanguage(Language sourceLang, Language targetLang, String message) {
+        public SelectLanguage(String sourceLang, String targetLang, String message) {
                 this.sourceLang = sourceLang;
                 this.targetLang = targetLang;
                 this.message = message;
         }
 
-        public Language getSourceLang() {
-                return sourceLang;
+        private static final String DEFAULT_LANG = "en"; // 기본 언어 코드 설정
+
+        public String getSourceLang() {
+                // sourceLang가 null이면 기본값을 반환하도록 설정
+                return (sourceLang != null) ? sourceLang : DEFAULT_LANG;
         }
 
-        public void setSourceLang(Language sourceLang) {
-                this.sourceLang = sourceLang;
+        public String getTargetLang() {
+                // targetLang가 null이면 기본값을 반환하도록 설정
+                return (targetLang != null) ? targetLang : DEFAULT_LANG;
         }
-
-        public Language getTargetLang() {
-                return targetLang;
-        }
-
-        public void setTargetLang(Language targetLang) {
-                this.targetLang = targetLang;
-        }
-
         public String getMessage() {
                 return message;
         }
@@ -42,8 +37,15 @@ public class SelectLanguage extends LoginPhoneNumberActivity{
                 this.message = message;
         }
 
+        public String getCountryCode() {
+                return countryCode;
+        }
 
-        //String languageCode = getLanguageCodeFromCountryCode(countryCode); // 국가코드에서 언어코드 가져오기, languageCode = 언어코드
+        public void setCountryCode(String countryCode) {
+                this.countryCode = countryCode;
+        }
+
+//String languageCode = getLanguageCodeFromCountryCode(countryCode); // 국가코드에서 언어코드 가져오기, languageCode = 언어코드
 
         public String getLanguageCodeFromCountryCode(String countryCode) {
                 switch (countryCode) {

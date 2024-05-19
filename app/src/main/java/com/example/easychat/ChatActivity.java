@@ -14,10 +14,10 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.example.easychat.adapter.ChatRecyclerAdapter;
-import com.example.easychat.adapter.SearchUserRecyclerAdapter;
 import com.example.easychat.model.ChatMessageModel;
 import com.example.easychat.model.ChatroomModel;
 import com.example.easychat.model.UserModel;
+import com.example.easychat.papago_trans.PapagoTranslator;
 import com.example.easychat.papago_trans.SelectLanguage;
 import com.example.easychat.utils.AndroidUtil;
 import com.example.easychat.utils.FirebaseUtil;
@@ -26,14 +26,12 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.Query;
 
-import org.checkerframework.checker.units.qual.C;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.sql.Time;
 import java.util.Arrays;
 
 import okhttp3.Call;
@@ -58,16 +56,13 @@ public class ChatActivity extends AppCompatActivity {
     RecyclerView recyclerView;
     ImageView imageView;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
 
-        //get UserModel
         otherUser = AndroidUtil.getUserModelFromIntent(getIntent());
-        chatroomId = FirebaseUtil.getChatroomId(FirebaseUtil.currentUserId(),otherUser.getUserId());
-
+        chatroomId = FirebaseUtil.getChatroomId(FirebaseUtil.currentUserId(), otherUser.getUserId());
 
         messageInput = findViewById(R.id.chat_message_input);
         sendMessageBtn = findViewById(R.id.message_send_btn);
@@ -77,68 +72,39 @@ public class ChatActivity extends AppCompatActivity {
         imageView = findViewById(R.id.profile_pic_image_view);
 
         FirebaseUtil.getOtherProfilePicStorageRef(otherUser.getUserId()).getDownloadUrl()
-                .addOnCompleteListener(t -> {
-                    if(t.isSuccessful()){
-                        Uri uri  = t.getResult();
-                        AndroidUtil.setProfilePic(this,uri,imageView);
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Uri uri = task.getResult();
+                        AndroidUtil.setProfilePic(this, uri, imageView);
                     }
                 });
 
-        backBtn.setOnClickListener((v)->{
-            onBackPressed();
-        });
+        backBtn.setOnClickListener((v) -> onBackPressed());
         otherUsername.setText(otherUser.getUsername());
 
         sendMessageBtn.setOnClickListener(v -> {
             String message = messageInput.getText().toString().trim();
-            if (message.isEmpty()) {
-                return;
-            }
+            if (message.isEmpty()) return;
 
-            // Firestore에서 currentUserId에 대한 UserModel 데이터를 가져오는 코드
-            FirebaseUtil.getUserReference(FirebaseUtil.currentUserId())
-                    .get()
-                    .addOnCompleteListener(task -> {
-                        if (task.isSuccessful() && task.getResult() != null) {
-                            DocumentSnapshot document = task.getResult();
-                            UserModel userModel = document.toObject(UserModel.class);
-
-                            if (userModel != null && userModel.getCountryCodeRef() != null) {
-                                userModel.getCountryCodeRef().get().addOnCompleteListener(countryTask -> {
-                                    if (countryTask.isSuccessful() && countryTask.getResult() != null) {
-                                        DocumentSnapshot countryDocument = countryTask.getResult();
-                                        String countryCode = countryDocument.getString("countryCode"); // 실제 필드 이름에 따라 변경 필요
-                                        if (countryCode != null) {
-                                            sendMessageToUser(message, countryCode);
-                                        } else {
-                                            Log.e("Firestore", "Country code is null");
-                                        }
-                                    } else {
-                                        Log.e("Firestore", "Failed to get country code document", countryTask.getException());
-                                    }
-                                });
-                            } else {
-                                Log.e("Firestore", "User model or countryCodeRef is null");
-                            }
-                        } else {
-                            Log.e("Firestore", "Failed to get user document", task.getException());
-                        }
-                    });
+            FirebaseUtil.getUserCountryCode(FirebaseUtil.currentUserId(), countryCode -> {
+                if (countryCode != null) {
+                    translateAndSendMessage(message, countryCode);
+                }
+            });
         });
-
 
         getOrCreateChatroomModel();
         setupChatRecyclerView();
     }
 
-    void setupChatRecyclerView(){
+    private void setupChatRecyclerView() {
         Query query = FirebaseUtil.getChatroomMessageReference(chatroomId)
                 .orderBy("timestamp", Query.Direction.DESCENDING);
 
         FirestoreRecyclerOptions<ChatMessageModel> options = new FirestoreRecyclerOptions.Builder<ChatMessageModel>()
-                .setQuery(query,ChatMessageModel.class).build();
+                .setQuery(query, ChatMessageModel.class).build();
 
-        adapter = new ChatRecyclerAdapter(options,getApplicationContext());
+        adapter = new ChatRecyclerAdapter(options, getApplicationContext());
         LinearLayoutManager manager = new LinearLayoutManager(this);
         manager.setReverseLayout(true);
         recyclerView.setLayoutManager(manager);
@@ -153,50 +119,83 @@ public class ChatActivity extends AppCompatActivity {
         });
     }
 
+    private void translateAndSendMessage(String message, String countryCode) {
+        SelectLanguage selectLanguage = new SelectLanguage(countryCode, otherUser.getCountryCode(), message);
+
+        PapagoTranslator.translate(selectLanguage, new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                runOnUiThread(() -> {
+                    // 번역 실패 시 원본 메시지를 전송
+                    sendMessageToUser(message, countryCode);
+                });
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    String responseBody = response.body().string();
+                    try {
+                        JSONObject jsonObject = new JSONObject(responseBody);
+                        String translatedMessage = jsonObject.getJSONObject("message").getJSONObject("result").getString("translatedText");
+                        runOnUiThread(() -> {
+                            sendMessageToUser(translatedMessage, countryCode);
+                        });
+                    } catch (Exception e) {
+                        runOnUiThread(() -> {
+                            // JSON 파싱 오류 시 원본 메시지를 전송
+                            sendMessageToUser(message, countryCode);
+                        });
+                    }
+                } else {
+                    runOnUiThread(() -> {
+                        // 응답 실패 시 원본 메시지를 전송
+                        sendMessageToUser(message, countryCode);
+                    });
+                }
+            }
+        });
+    }
+
     void sendMessageToUser(String message, String countryCode) {
         String userID = FirebaseUtil.currentUserId();
         DocumentReference userRef = FirebaseUtil.getUserReference(userID);
 
-        userRef.update("countryCode", countryCode)
-                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        if (task.isSuccessful()) {
-                            Log.d("Firestore", "Country code updated successfully");
+        // 사용자 국가 코드 업데이트
+        FirebaseUtil.updateUserCountryCode(userID, countryCode);
 
-                            chatroomModel.setLastMessageTimestamp(Timestamp.now());
-                            chatroomModel.setLastMessageSenderId(FirebaseUtil.currentUserId());
-                            chatroomModel.setLastMessage(message);
-                            FirebaseUtil.getChatroomReference(chatroomId).set(chatroomModel);
+        // 채팅방 모델 업데이트
+        chatroomModel.setLastMessageTimestamp(Timestamp.now());
+        chatroomModel.setLastMessageSenderId(FirebaseUtil.currentUserId());
+        chatroomModel.setLastMessage(message);
+        FirebaseUtil.getChatroomReference(chatroomId).set(chatroomModel);
 
-                            ChatMessageModel chatMessageModel = new ChatMessageModel(message, FirebaseUtil.currentUserId(), Timestamp.now());
-                            FirebaseUtil.getChatroomMessageReference(chatroomId).add(chatMessageModel)
-                                    .addOnCompleteListener(new OnCompleteListener<DocumentReference>() {
-                                        @Override
-                                        public void onComplete(@NonNull Task<DocumentReference> task) {
-                                            if (task.isSuccessful()) {
-                                                messageInput.setText("");
-                                                sendNotification(message);
-                                            }
-                                        }
-                                    });
-                        } else {
-                            Log.e("Firestore", "Failed to update country code", task.getException());
-                        }
+        // 채팅 메시지 모델 생성 및 저장
+        ChatMessageModel chatMessageModel = new ChatMessageModel(message, FirebaseUtil.currentUserId(), Timestamp.now());
+        FirebaseUtil.getChatroomMessageReference(chatroomId).add(chatMessageModel)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        // 메시지 입력 필드 비우기
+                        runOnUiThread(() -> messageInput.setText(""));
+                        // 알림 보내기
+                        sendNotification(message);
+                    } else {
+                        // 실패 시 처리
+                        Log.e("ChatActivity", "Failed to send message: " + task.getException().getMessage());
                     }
                 });
     }
 
 
-    void getOrCreateChatroomModel(){
+
+    private void getOrCreateChatroomModel() {
         FirebaseUtil.getChatroomReference(chatroomId).get().addOnCompleteListener(task -> {
-            if(task.isSuccessful()){
+            if (task.isSuccessful()) {
                 chatroomModel = task.getResult().toObject(ChatroomModel.class);
-                if(chatroomModel==null){
-                    //first time chat
+                if (chatroomModel == null) {
                     chatroomModel = new ChatroomModel(
                             chatroomId,
-                            Arrays.asList(FirebaseUtil.currentUserId(),otherUser.getUserId()),
+                            Arrays.asList(FirebaseUtil.currentUserId(), otherUser.getUserId()),
                             Timestamp.now(),
                             ""
                     );
@@ -206,77 +205,54 @@ public class ChatActivity extends AppCompatActivity {
         });
     }
 
-    void sendNotification(String message){
+    private void sendNotification(String message) {
+        FirebaseUtil.currentUserDetails().get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                UserModel currentUser = task.getResult().toObject(UserModel.class);
+                try {
+                    JSONObject jsonObject = new JSONObject();
 
-       FirebaseUtil.currentUserDetails().get().addOnCompleteListener(task -> {
-           if(task.isSuccessful()){
-               UserModel currentUser = task.getResult().toObject(UserModel.class);
-               try{
-                   JSONObject jsonObject  = new JSONObject();
+                    JSONObject notificationObj = new JSONObject();
+                    notificationObj.put("title", currentUser.getUsername());
+                    notificationObj.put("body", message);
 
-                   JSONObject notificationObj = new JSONObject();
-                   notificationObj.put("title",currentUser.getUsername());
-                   notificationObj.put("body",message);
+                    JSONObject dataObj = new JSONObject();
+                    dataObj.put("userId", currentUser.getUserId());
 
-                   JSONObject dataObj = new JSONObject();
-                   dataObj.put("userId",currentUser.getUserId());
+                    jsonObject.put("notification", notificationObj);
+                    jsonObject.put("data", dataObj);
+                    jsonObject.put("to", otherUser.getFcmToken());
 
-                   jsonObject.put("notification",notificationObj);
-                   jsonObject.put("data",dataObj);
-                   jsonObject.put("to",otherUser.getFcmToken());
-
-                   callApi(jsonObject);
-
-
-               }catch (Exception e){
-
-               }
-
-           }
-       });
-
+                    callApi(jsonObject);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
-    void callApi(JSONObject jsonObject){
-         MediaType JSON = MediaType.get("application/json; charset=utf-8");
-         OkHttpClient client = new OkHttpClient();
+    private void callApi(JSONObject jsonObject) {
+        MediaType JSON = MediaType.get("application/json; charset=utf-8");
+        OkHttpClient client = new OkHttpClient();
         String url = "https://fcm.googleapis.com/fcm/send";
-        RequestBody body = RequestBody.create(jsonObject.toString(),JSON);
+        RequestBody body = RequestBody.create(jsonObject.toString(), JSON);
         Request request = new Request.Builder()
                 .url(url)
                 .post(body)
-                .header("Authorization","Bearer YOUR_API_KEY")
+                .header("Authorization", "Bearer YOUR_API_KEY")
                 .build();
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-
+                e.printStackTrace();
             }
 
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-
+                if (!response.isSuccessful()) {
+                    throw new IOException("Unexpected code " + response);
+                }
             }
         });
-
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }

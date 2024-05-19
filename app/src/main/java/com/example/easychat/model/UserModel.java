@@ -10,7 +10,6 @@ public class UserModel {
     private String userId;
     private String fcmToken;
     private String countryCode;
-    private DocumentReference countryCodeRef;
 
     public UserModel() {
     }
@@ -74,11 +73,4 @@ public class UserModel {
     }
 
 
-    public DocumentReference getCountryCodeRef() {
-        return countryCodeRef;
-    }
-
-    public void setCountryCodeRef(DocumentReference countryCodeRef) {
-        this.countryCodeRef = countryCodeRef;
-    }
 }

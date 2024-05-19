@@ -52,14 +52,13 @@ public enum Language {
         this.code = code;
     }
 
-    public static Language forLanguageCode(String code) {
-        Language lang = Language.ENGLISH;
-        for (Language language : Language.values()) {
-            if (language.code.equals(code)) {
-                lang = language;
+    public static Language fromCode(String code) {
+        for (Language lang : Language.values()) {
+            if (lang.code.equals(code)) {
+                return lang;
             }
         }
-        return lang;
+        return null;
     }
 
     public String getCode() {
@@ -85,5 +84,8 @@ public enum Language {
     public void setScript(String script) {
         this.script = script;
     }
+
+
+
 }
 
