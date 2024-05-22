@@ -9,7 +9,7 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/my_primary"
+        android:background="#0055D4"
         android:padding="10dp"
         android:id="@+id/toolbar">
 
@@ -81,7 +81,7 @@
             android:layout_alignParentEnd="true"
             android:layout_centerInParent="true"
             android:background="?attr/selectableItemBackgroundBorderless"
-            app:tint="@color/my_primary"
+            app:tint="#0055D4"
             android:id="@+id/message_send_btn"
             android:padding="8dp"
             android:layout_marginStart="10dp"

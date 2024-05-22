@@ -9,14 +9,14 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/my_primary"
+        android:background="#0055D4"
         android:padding="10dp"
         android:id="@+id/main_toolbar">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/app_name"
+            android:text="LangSync"
             android:textSize="22sp"
             android:textStyle="bold"
             android:textColor="@color/white"
@@ -50,12 +50,14 @@
         android:id="@+id/divider"/>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:id="@+id/bottom_navigation"
-        app:menu="@menu/bottom_navigation_menu"/>
+        app:itemIconTint="@color/chat_color_sender"
+        app:itemTextColor="@color/chat_color_sender"
+        app:menu="@menu/bottom_navigation_menu" />
 
 
 
