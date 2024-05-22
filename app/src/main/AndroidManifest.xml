@@ -6,9 +6,9 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:icon="@drawable/ls_icon"
+        android:label="LangSync"
+        android:roundIcon="@drawable/ls_icon"
         android:supportsRtl="true"
         android:theme="@style/Theme.EasyChat"
         tools:targetApi="31">
