@@ -37,39 +37,34 @@ public class SelectLanguage extends LoginPhoneNumberActivity{
                 this.message = message;
         }
 
-        public String getCountryCode() {
-                return countryCode;
-        }
-
-        public void setCountryCode(String countryCode) {
-                this.countryCode = countryCode;
-        }
-
-//String languageCode = getLanguageCodeFromCountryCode(countryCode); // 국가코드에서 언어코드 가져오기, languageCode = 언어코드
+        //String languageCode = getLanguageCodeFromCountryCode(countryCode); // 국가코드에서 언어코드 가져오기, languageCode = 언어코드
 
         public String getLanguageCodeFromCountryCode(String countryCode) {
+                if (countryCode == null) {
+                        return "en";
+                }
                 switch (countryCode) {
-                        case "+7":
+                        case "7":
                                 return "ru"; //러시아
-                        case "+33":
+                        case "33":
                                 return "fr"; //프랑스
-                        case "+34":
+                        case "34":
                                 return "es"; //스페인
-                        case "+39":
+                        case "39":
                                 return "it"; //이탈리아
-                        case "+49":
+                        case "49":
                                 return "de"; //독일
-                        case "+62":
+                        case "62":
                                 return "id"; //인도네시아
                         case "66":
                                 return "th"; //태국
-                        case "+81":
+                        case "81":
                                 return "ja"; //일본
-                        case "+82":
+                        case "82":
                                 return "ko"; //한국
-                        case "+84":
+                        case "84":
                                 return "vi"; //베트남
-                        case "+86":
+                        case "86":
                                 return "zh-CN"; //중국어 간체
                         default:
                                 return "en"; //영국 "44", 미국 "1"

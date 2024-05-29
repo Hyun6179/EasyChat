@@ -68,8 +68,8 @@ public class UserModel {
         return countryCode;
     }
 
-    public void setCountryCode(String countryCode) {
-        this.countryCode = countryCode;
+    public void setCountryCode(String languageCode) {
+        this.countryCode = languageCode;
     }
 
 

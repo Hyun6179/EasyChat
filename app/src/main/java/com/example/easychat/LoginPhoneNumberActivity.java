@@ -4,11 +4,14 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 
+
+import com.example.easychat.model.UserModel;
 import com.example.easychat.papago_trans.SelectLanguage;
 import com.hbb20.CountryCodePicker;
 
@@ -32,17 +35,27 @@ public class LoginPhoneNumberActivity extends AppCompatActivity {
         progressBar.setVisibility(View.GONE);
 
         countryCodePicker.registerCarrierNumberEditText(phoneInput);
-        sendOtpBtn.setOnClickListener((v)->{
-            if(!countryCodePicker.isValidFullNumber()){
+        sendOtpBtn.setOnClickListener((v) -> {
+            if (!countryCodePicker.isValidFullNumber()) {
                 phoneInput.setError("Phone number not valid");
                 return;
             }
 
-            String countryCode = countryCodePicker.getSelectedCountryCode(); // 국가 코드 가져오기
-            SelectLanguage selectLanguage = new SelectLanguage(countryCode);
+            // countryCodePicker에서 국가 코드 가져오기
+            String countryCode = countryCodePicker.getSelectedCountryCode();
+            Log.d("countryCodePicker", countryCode);
 
-            Intent intent = new Intent(LoginPhoneNumberActivity.this,LoginOtpActivity.class);
-            intent.putExtra("phone",countryCodePicker.getFullNumberWithPlus());
+            SelectLanguage selectLanguage = new SelectLanguage(countryCode);
+            String languageCode = selectLanguage.getLanguageCodeFromCountryCode(countryCode);
+            Log.d("language", languageCode);
+
+            Intent intent = new Intent(LoginPhoneNumberActivity.this, LoginOtpActivity.class);
+            intent.putExtra("phone", countryCodePicker.getFullNumberWithPlus());
+
+            // Intent에 countryCode도 추가
+            intent.putExtra("countryCode", languageCode);
+
+
             startActivity(intent);
         });
 

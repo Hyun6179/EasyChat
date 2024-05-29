@@ -17,6 +17,7 @@ import com.example.easychat.adapter.ChatRecyclerAdapter;
 import com.example.easychat.model.ChatMessageModel;
 import com.example.easychat.model.ChatroomModel;
 import com.example.easychat.model.UserModel;
+import com.example.easychat.papago_trans.Language;
 import com.example.easychat.papago_trans.PapagoTranslator;
 import com.example.easychat.papago_trans.SelectLanguage;
 import com.example.easychat.utils.AndroidUtil;
@@ -159,7 +160,6 @@ public class ChatActivity extends AppCompatActivity {
 
     void sendMessageToUser(String message, String countryCode) {
         String userID = FirebaseUtil.currentUserId();
-        DocumentReference userRef = FirebaseUtil.getUserReference(userID);
 
         // 사용자 국가 코드 업데이트
         FirebaseUtil.updateUserCountryCode(userID, countryCode);

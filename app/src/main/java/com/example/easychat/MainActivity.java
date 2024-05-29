@@ -62,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
                 if(task.isSuccessful()){
                     String token = task.getResult();
                     FirebaseUtil.currentUserDetails().update("fcmToken",token);
-
                 }
         });
     }

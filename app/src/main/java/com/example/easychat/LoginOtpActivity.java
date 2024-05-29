@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -12,6 +13,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.easychat.model.UserModel;
 import com.example.easychat.utils.AndroidUtil;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -33,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 
 public class LoginOtpActivity extends AppCompatActivity {
 
+    String countryCode;
     String phoneNumber;
     Long timeoutSeconds = 60L;
     String verificationCode;
@@ -54,6 +57,7 @@ public class LoginOtpActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.login_progress_bar);
         resendOtpTextView = findViewById(R.id.resend_otp_textview);
 
+        countryCode = getIntent().getExtras().getString("countryCode");
         phoneNumber = getIntent().getExtras().getString("phone");
 
         sendOtp(phoneNumber,false);
@@ -128,6 +132,7 @@ public class LoginOtpActivity extends AppCompatActivity {
                 if(task.isSuccessful()){
                     Intent intent = new Intent(LoginOtpActivity.this,LoginUsernameActivity.class);
                     intent.putExtra("phone",phoneNumber);
+                    intent.putExtra("countryCode", countryCode);
                     startActivity(intent);
                 }else{
                     AndroidUtil.showToast(getApplicationContext(),"OTP verification failed");
@@ -159,16 +164,4 @@ public class LoginOtpActivity extends AppCompatActivity {
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
