@@ -22,6 +22,7 @@ public class AndroidUtil {
        intent.putExtra("phone",model.getPhone());
        intent.putExtra("userId",model.getUserId());
         intent.putExtra("fcmToken",model.getFcmToken());
+        intent.putExtra("countryCode",model.getCountryCode());
 
     }
 
@@ -31,10 +32,16 @@ public class AndroidUtil {
         userModel.setPhone(intent.getStringExtra("phone"));
         userModel.setUserId(intent.getStringExtra("userId"));
         userModel.setFcmToken(intent.getStringExtra("fcmToken"));
+        userModel.setCountryCode(intent.getStringExtra("countryCode"));
         return userModel;
     }
 
     public static void setProfilePic(Context context, Uri imageUri, ImageView imageView){
         Glide.with(context).load(imageUri).apply(RequestOptions.circleCropTransform()).into(imageView);
+    }
+
+    // Drawable 리소스를 이용해 프로필 사진을 설정하는 메서드
+    public static void setProfilePic(Context context, int drawableResId, ImageView imageView) {
+        Glide.with(context).load(drawableResId).into(imageView);
     }
 }

@@ -14,7 +14,15 @@
       },
       "oauth_client": [
         {
-          "client_id": "",
+          "client_id": "678816806859-kkgh28n0057ogfgffeao3sli0fhpbha1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.easychat",
+            "certificate_hash": "bf7d9c038f9ac8eb54fda719fefa04730cf7faf8"
+          }
+        },
+        {
+          "client_id": "678816806859-jfkvple63o1agbva0upgf7fs2rgvlj9g.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -27,7 +35,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "",
+              "client_id": "678816806859-jfkvple63o1agbva0upgf7fs2rgvlj9g.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

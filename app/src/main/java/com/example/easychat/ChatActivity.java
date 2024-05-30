@@ -1,5 +1,7 @@
 package com.example.easychat;
 
+import static android.content.ContentValues.TAG;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -45,6 +47,8 @@ import okhttp3.Response;
 
 public class ChatActivity extends AppCompatActivity {
 
+    String countryCode;
+    UserModel user;
     UserModel otherUser;
     String chatroomId;
     ChatroomModel chatroomModel;
@@ -119,10 +123,24 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
     }
-
     private void translateAndSendMessage(String message, String countryCode) {
-        SelectLanguage selectLanguage = new SelectLanguage(countryCode, otherUser.getCountryCode(), message);
+        // otherUser 객체가 null인지 확인
+        if (otherUser == null) {
+            Log.e(TAG, "otherUser is null");
+            return;
+        }
 
+        // otherUser의 countryCode가 null인지 확인
+        String otherCountryCode = otherUser.getCountryCode();
+        if (otherCountryCode == null) {
+            Log.e(TAG, "otherUser's countryCode is null");
+            return;
+        }
+
+        // SelectLanguage 객체 생성
+        SelectLanguage selectLanguage = new SelectLanguage(countryCode, otherCountryCode, message);
+
+        // PapagoTranslator를 사용하여 번역 요청
         PapagoTranslator.translate(selectLanguage, new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
@@ -157,6 +175,7 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
     }
+
 
     void sendMessageToUser(String message, String countryCode) {
         String userID = FirebaseUtil.currentUserId();

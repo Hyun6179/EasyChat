@@ -55,8 +55,6 @@ public class LoginUsernameActivity extends AppCompatActivity {
         if (userModel != null) {
             userModel.setUsername(username);
             userModel.setCountryCode(countryCode); // userModel에 countryCode가 null값으로 입력되어 마지막에 추가로 입력하는 과정
-            String noError = "countryCode is " + userModel.getCountryCode();
-            Log.d("SetUsername", noError);
         } else {
             userModel = new UserModel(phoneNumber, username, Timestamp.now(), FirebaseUtil.currentUserId(), countryCode); // 수정: countryCode 추가\
             Log.d("CountryCode", countryCode);
