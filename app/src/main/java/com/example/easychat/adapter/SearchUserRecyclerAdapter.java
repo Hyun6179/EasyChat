@@ -1,5 +1,6 @@
 package com.example.easychat.adapter;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -62,6 +63,10 @@ public class SearchUserRecyclerAdapter extends FirestoreRecyclerAdapter<UserMode
             // Navigate to chat activity
             Intent intent = new Intent(context, ChatActivity.class);
             AndroidUtil.passUserModelAsIntent(intent, model);
+            // Add FLAG_ACTIVITY_NEW_TASK flag if context is not an Activity
+            if (!(context instanceof Activity)) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            }
             context.startActivity(intent);
         });
     }
