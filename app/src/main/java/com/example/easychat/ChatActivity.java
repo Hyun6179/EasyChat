@@ -19,19 +19,14 @@ import com.example.easychat.adapter.ChatRecyclerAdapter;
 import com.example.easychat.model.ChatMessageModel;
 import com.example.easychat.model.ChatroomModel;
 import com.example.easychat.model.UserModel;
-import com.example.easychat.papago_trans.Language;
 import com.example.easychat.papago_trans.PapagoTranslator;
 import com.example.easychat.papago_trans.SelectLanguage;
 import com.example.easychat.utils.AndroidUtil;
 import com.example.easychat.utils.FirebaseUtil;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.Timestamp;
-import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.Query;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -93,10 +88,18 @@ public class ChatActivity extends AppCompatActivity {
 
             FirebaseUtil.getUserCountryCode(FirebaseUtil.currentUserId(), countryCode -> {
                 if (countryCode != null) {
-                    translateAndSendMessage(message, countryCode);
+                    // 상대방의 countryCode를 확인합니다.
+                    String otherCountryCode = otherUser.getCountryCode();
+                    if (otherCountryCode != null) {
+                        // sendMessageWithTranslation 메소드를 호출하여 메시지를 처리합니다.
+                        sendMessageWithTranslation(message, countryCode, otherCountryCode);
+                    } else {
+                        Log.e(TAG, "otherUser's countryCode is null");
+                    }
                 }
             });
         });
+
 
         getOrCreateChatroomModel();
         setupChatRecyclerView();
@@ -123,30 +126,28 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
     }
-    private void translateAndSendMessage(String message, String countryCode) {
-        // otherUser 객체가 null인지 확인
-        if (otherUser == null) {
-            Log.e(TAG, "otherUser is null");
-            return;
+
+    // sourceText, sourceLang, targetLang을 받아서 번역된 메시지를 보여주는 함수
+    private void sendMessageWithTranslation(String sourceText, String sourceLang, String targetLang) {
+        // 사용자의 countryCode와 상대방의 countryCode가 같으면 번역 없이 전송
+        if (sourceLang.equals(targetLang)) {
+            sendMessageToUser(sourceText, sourceLang);
+        } else {
+            // 번역된 메시지를 전송
+            translateAndSendMessage(sourceText, sourceLang, targetLang);
         }
+    }
 
-        // otherUser의 countryCode가 null인지 확인
-        String otherCountryCode = otherUser.getCountryCode();
-        if (otherCountryCode == null) {
-            Log.e(TAG, "otherUser's countryCode is null");
-            return;
-        }
-
-        // SelectLanguage 객체 생성
-        SelectLanguage selectLanguage = new SelectLanguage(countryCode, otherCountryCode, message);
-
-        // PapagoTranslator를 사용하여 번역 요청
+    // 번역된 메시지를 상대방에게 보내는 함수
+    private void translateAndSendMessage(String sourceText, String sourceLang, String targetLang) {
+        // 번역을 위한 SelectLanguage 객체 생성
+        SelectLanguage selectLanguage = new SelectLanguage(sourceLang, targetLang, sourceText);
         PapagoTranslator.translate(selectLanguage, new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 runOnUiThread(() -> {
                     // 번역 실패 시 원본 메시지를 전송
-                    sendMessageToUser(message, countryCode);
+                    sendMessageToUser(sourceText, sourceLang);
                 });
             }
 
@@ -158,30 +159,27 @@ public class ChatActivity extends AppCompatActivity {
                         JSONObject jsonObject = new JSONObject(responseBody);
                         String translatedMessage = jsonObject.getJSONObject("message").getJSONObject("result").getString("translatedText");
                         runOnUiThread(() -> {
-                            sendMessageToUser(translatedMessage, countryCode);
+                            // 번역된 메시지를 상대방에게 전송
+                            sendMessageToUser(translatedMessage, targetLang);
                         });
                     } catch (Exception e) {
                         runOnUiThread(() -> {
                             // JSON 파싱 오류 시 원본 메시지를 전송
-                            sendMessageToUser(message, countryCode);
+                            sendMessageToUser(sourceText, sourceLang);
                         });
                     }
                 } else {
                     runOnUiThread(() -> {
                         // 응답 실패 시 원본 메시지를 전송
-                        sendMessageToUser(message, countryCode);
+                        sendMessageToUser(sourceText, sourceLang);
                     });
                 }
             }
         });
     }
 
-
     void sendMessageToUser(String message, String countryCode) {
         String userID = FirebaseUtil.currentUserId();
-
-        // 사용자 국가 코드 업데이트
-        FirebaseUtil.updateUserCountryCode(userID, countryCode);
 
         // 채팅방 모델 업데이트
         chatroomModel.setLastMessageTimestamp(Timestamp.now());
@@ -204,8 +202,6 @@ public class ChatActivity extends AppCompatActivity {
                     }
                 });
     }
-
-
 
     private void getOrCreateChatroomModel() {
         FirebaseUtil.getChatroomReference(chatroomId).get().addOnCompleteListener(task -> {
@@ -275,3 +271,5 @@ public class ChatActivity extends AppCompatActivity {
         });
     }
 }
+
+
