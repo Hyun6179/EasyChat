@@ -1,7 +1,6 @@
 package com.example.easychat.model;
 
 import com.google.firebase.Timestamp;
-import com.google.firebase.firestore.DocumentReference;
 
 public class UserModel {
     private String phone;

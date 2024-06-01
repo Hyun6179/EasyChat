@@ -15,7 +15,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.example.easychat.adapter.ChatRecyclerAdapter;
+import com.example.easychat.adapter.ChatRecentAdapter;
 import com.example.easychat.model.ChatMessageModel;
 import com.example.easychat.model.ChatroomModel;
 import com.example.easychat.model.UserModel;
@@ -27,6 +27,7 @@ import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.Query;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -47,7 +48,7 @@ public class ChatActivity extends AppCompatActivity {
     UserModel otherUser;
     String chatroomId;
     ChatroomModel chatroomModel;
-    ChatRecyclerAdapter adapter;
+    ChatRecentAdapter adapter;
 
     EditText messageInput;
     ImageButton sendMessageBtn;
@@ -100,7 +101,6 @@ public class ChatActivity extends AppCompatActivity {
             });
         });
 
-
         getOrCreateChatroomModel();
         setupChatRecyclerView();
     }
@@ -112,12 +112,14 @@ public class ChatActivity extends AppCompatActivity {
         FirestoreRecyclerOptions<ChatMessageModel> options = new FirestoreRecyclerOptions.Builder<ChatMessageModel>()
                 .setQuery(query, ChatMessageModel.class).build();
 
-        adapter = new ChatRecyclerAdapter(options, getApplicationContext());
+        adapter = new ChatRecentAdapter(options, this); // Context를 직접 전달
         LinearLayoutManager manager = new LinearLayoutManager(this);
         manager.setReverseLayout(true);
         recyclerView.setLayoutManager(manager);
         recyclerView.setAdapter(adapter);
         adapter.startListening();
+
+        // 어댑터에 등록된 데이터가 변경될 때마다 맨 위로 스크롤
         adapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
             @Override
             public void onItemRangeInserted(int positionStart, int itemCount) {
@@ -138,17 +140,13 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
-    // 번역된 메시지를 상대방에게 보내는 함수
     private void translateAndSendMessage(String sourceText, String sourceLang, String targetLang) {
-        // 번역을 위한 SelectLanguage 객체 생성
-        SelectLanguage selectLanguage = new SelectLanguage(sourceLang, targetLang, sourceText);
-        PapagoTranslator.translate(selectLanguage, new Callback() {
+        // 번역된 메시지를 상대방에게만 전송하고, 자신은 번역되지 않은 메시지를 전송
+        PapagoTranslator.translate(new SelectLanguage(sourceLang, targetLang, sourceText), new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                runOnUiThread(() -> {
-                    // 번역 실패 시 원본 메시지를 전송
-                    sendMessageToUser(sourceText, sourceLang);
-                });
+                // 번역 실패 시 원본 메시지를 상대방에게 전송하고, 본인에게도 동일한 메시지를 표시
+                sendMessageToUser(sourceText, sourceLang);
             }
 
             @Override
@@ -158,27 +156,23 @@ public class ChatActivity extends AppCompatActivity {
                     try {
                         JSONObject jsonObject = new JSONObject(responseBody);
                         String translatedMessage = jsonObject.getJSONObject("message").getJSONObject("result").getString("translatedText");
-                        runOnUiThread(() -> {
-                            // 번역된 메시지를 상대방에게 전송
-                            sendMessageToUser(translatedMessage, targetLang);
-                        });
-                    } catch (Exception e) {
-                        runOnUiThread(() -> {
-                            // JSON 파싱 오류 시 원본 메시지를 전송
-                            sendMessageToUser(sourceText, sourceLang);
-                        });
+                        // 번역된 메시지를 상대방에게 전송하고, 자신은 번역되지 않은 메시지를 전송
+                        sendMessageToUser(translatedMessage, targetLang);
+                    } catch (JSONException e) {
+                        Log.e(TAG, "JSONException: " + e.getMessage());
+                        // JSON 파싱 오류 시 원본 메시지를 상대방에게 전송하고, 본인에게도 동일한 메시지를 표시
+                        sendMessageToUser(sourceText, sourceLang);
                     }
                 } else {
-                    runOnUiThread(() -> {
-                        // 응답 실패 시 원본 메시지를 전송
-                        sendMessageToUser(sourceText, sourceLang);
-                    });
+                    // 응답 실패 시 원본 메시지를 상대방에게 전송하고, 본인에게도 동일한 메시지를 표시
+                    sendMessageToUser(sourceText, sourceLang);
                 }
             }
         });
+
     }
 
-    void sendMessageToUser(String message, String countryCode) {
+    private void sendMessageToUser(String message, String countryCode) {
         String userID = FirebaseUtil.currentUserId();
 
         // 채팅방 모델 업데이트
@@ -208,14 +202,20 @@ public class ChatActivity extends AppCompatActivity {
             if (task.isSuccessful()) {
                 chatroomModel = task.getResult().toObject(ChatroomModel.class);
                 if (chatroomModel == null) {
+                    // 생성할 때 마지막 메시지는 초기화하지 않습니다.
                     chatroomModel = new ChatroomModel(
                             chatroomId,
                             Arrays.asList(FirebaseUtil.currentUserId(), otherUser.getUserId()),
                             Timestamp.now(),
-                            ""
+                            FirebaseUtil.currentUserId(), // 현재 사용자가 마지막 메시지를 보냄
+                            "" // 초기에 마지막 메시지는 없음
                     );
-                    FirebaseUtil.getChatroomReference(chatroomId).set(chatroomModel);
+                    FirebaseUtil.getChatroomReference(chatroomId).set(chatroomModel)
+                            .addOnSuccessListener(aVoid -> Log.d(TAG, "ChatroomModel created"))
+                            .addOnFailureListener(e -> Log.e(TAG, "Failed to create ChatroomModel: " + e.getMessage()));
                 }
+            } else {
+                Log.e(TAG, "Failed to get ChatroomModel: " + task.getException().getMessage());
             }
         });
     }
@@ -271,5 +271,3 @@ public class ChatActivity extends AppCompatActivity {
         });
     }
 }
-
-

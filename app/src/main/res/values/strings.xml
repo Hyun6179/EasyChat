@@ -2,4 +2,7 @@
     <string name="app_name">LangSync</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string name="papago_client_id">zvii9x0xba</string>
+    <string name="papago_client_secret">nSShvwgFXbPuGbJZDmZsTsCKrUcqi74s1u2NvFwX</string>
 </resources>
