@@ -32,6 +32,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -60,31 +61,9 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_chat1);
 
         // 인텐트에서 다른 사용자를 가져옵니다
         otherUser = AndroidUtil.getUserModelFromIntent(getIntent());
-
-        // 뷰를 초기화합니다
-        messageInput = findViewById(R.id.chat_message_input);
-        sendMessageBtn = findViewById(R.id.message_send_btn);
-        backBtn = findViewById(R.id.back_btn);
-        otherUsername = findViewById(R.id.other_username);
-        recyclerView = findViewById(R.id.chat_recycler_view);
-        imageView = findViewById(R.id.profile_pic_image_view);
-
-        // 뒤로 가기 버튼과 다른 사용자의 사용자 이름을 설정합니다
-        backBtn.setOnClickListener(v -> onBackPressed());
-        otherUsername.setText(otherUser.getUsername());
-
-        // 다른 사용자의 프로필 사진을 불러옵니다
-        FirebaseUtil.getOtherProfilePicStorageRef(otherUser.getUserId()).getDownloadUrl()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        Uri uri = task.getResult();
-                        AndroidUtil.setProfilePic(this, uri, imageView);
-                    }
-                });
 
         // 현재 사용자의 국가 코드를 가져옵니다
         FirebaseUtil.getCurrentUserCountryCode(senderCountryCode -> {
@@ -111,37 +90,94 @@ public class ChatActivity extends AppCompatActivity {
             // 채팅방 모델을 가져오거나 생성합니다
             FirebaseUtil.getOrCreateChatroomModel(chatroomId, otherUser.getUserId(), chatroomModel -> {
                 if (chatroomModel != null) {
-                    // chatroomModel을 사용하여 필요한 업데이트를 수행합니다
+                    // 적절한 레이아웃 설정
+                    if (chatroomId.contains("ko")) {
+                        setContentView(R.layout.activity_chat1);
+                    } else {
+                        setContentView(R.layout.activity_chat2);
+                    }
+
+                    // 뷰를 초기화합니다
+                    messageInput = findViewById(R.id.chat_message_input);
+                    sendMessageBtn = findViewById(R.id.message_send_btn);
+                    backBtn = findViewById(R.id.back_btn);
+                    otherUsername = findViewById(R.id.other_username);
+                    recyclerView = findViewById(R.id.chat_recycler_view);
+                    imageView = findViewById(R.id.profile_pic_image_view);
+
+                    // 뒤로 가기 버튼과 다른 사용자의 사용자 이름을 설정합니다
+                    backBtn.setOnClickListener(v -> onBackPressed());
+                    otherUsername.setText(otherUser.getUsername());
+
+                    // 다른 사용자의 프로필 사진을 불러옵니다
+                    FirebaseUtil.getOtherProfilePicStorageRef(otherUser.getUserId()).getDownloadUrl()
+                            .addOnCompleteListener(task -> {
+                                if (task.isSuccessful()) {
+                                    Uri uri = task.getResult();
+                                    AndroidUtil.setProfilePic(this, uri, imageView);
+                                }
+                            });
+
+                    // RecyclerView 및 메시지 리스너 설정
                     setupChatRecyclerView();
                     setupMessageListener();
+
+                    // 메시지 보내기 버튼 클릭 리스너
+                    sendMessageBtn.setOnClickListener(v -> {
+                        if (chatroomModel == null) {
+                            Log.e(TAG, "ChatroomModel is not initialized");
+                            return;
+                        }
+
+                        String messageText = messageInput.getText().toString().trim();
+                        if (!messageText.isEmpty()) {
+                            String senderId = FirebaseUtil.currentUserId();
+                            List<String> userIds = chatroomModel.getUserIds();
+                            String receiverId = null;
+
+                            // 채팅방에 두 명의 사용자가 있다고 가정
+                            if (userIds.size() == 2) {
+                                // 송신자의 ID와 다른 사용자의 ID 확인
+                                receiverId = senderId.equals(userIds.get(0)) ? userIds.get(1) : userIds.get(0);
+                            }
+
+                            if (receiverId != null) {
+
+                                Timestamp currentTimeStamp = Timestamp.now();
+
+                                // ChatMessageModel 객체 생성
+                                ChatMessageModel chatMessage = new ChatMessageModel(messageText, senderId, receiverId, currentTimeStamp, null);
+
+                                // 메시지 번역 및 전송
+                                ChatMessageProcessor.sendMessageWithTranslation(chatMessage, senderCountryCode, receiverCountryCode);
+
+                                // 입력 필드 초기화
+                                messageInput.setText("");
+
+                                // 채팅방 필드 업데이트
+                                FirebaseUtil.updateChatroomModel(chatroomId, chatMessage);
+
+                                // 메시지를 Firebase에 저장
+                                FirebaseUtil.saveMessage(chatroomId, chatMessage);
+
+                                updateMessage(chatMessage.getTranslatedMessage(), chatMessage.getTimestamp());
+
+                            } else {
+                                Log.e(TAG, "Receiver ID cannot be null or empty");
+                            }
+                        }
+                    });
+
                 } else {
                     Log.e(TAG, "채팅방 모델을 가져오거나 생성하는 데 실패했습니다: " + chatroomId);
                 }
             });
-
-            // 메시지 보내기 버튼 클릭 리스너
-            sendMessageBtn.setOnClickListener(v -> {
-                String messageText = messageInput.getText().toString().trim();
-                if (!messageText.isEmpty()) {
-                    String senderId = FirebaseUtil.currentUserId();
-                    String receiverId = otherUser.getUserId();
-
-                    // ChatMessageModel 객체 생성
-                    ChatMessageModel chatMessage = new ChatMessageModel(messageText, senderId, receiverId, null, null);
-
-                    // 메시지 번역 및 전송
-                    ChatMessageProcessor.sendMessageWithTranslation(chatMessage, senderCountryCode, receiverCountryCode);
-
-                    // 채팅방 정보 업데이트
-                    updateChatroomInfo(senderId, receiverId, messageText, senderCountryCode, receiverCountryCode);
-
-                    // 입력 필드 초기화
-                    messageInput.setText("");
-                }
-            });
-
-
         });
+    }
+
+    private void updateMessage(String translatedMessage, Timestamp timestamp) {
+        // 번역된 메시지와 타임스탬프를 함께 업데이트
+        FirebaseUtil.updateMessage(translatedMessage, timestamp);
     }
 
     private void updateChatroomInfo(String senderId, String receiverId, String message, String senderCountryCode, String receiverCountryCode) {

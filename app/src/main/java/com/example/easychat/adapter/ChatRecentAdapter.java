@@ -54,31 +54,32 @@ public class ChatRecentAdapter extends FirestoreRecyclerAdapter<ChatMessageModel
             holder.leftChatLayout.setVisibility(View.VISIBLE);
             holder.rightChatLayout.setVisibility(View.GONE);
 
-            if (senderId != null && currentUserID != null) {
-                FirebaseUtil.getUserLastMessageCountryCode(currentUserID, userLastMessageCountryCode -> {
-                    FirebaseUtil.getUserLastMessageCountryCode(senderId, senderLastMessageCountryCode -> {
-                        if (userLastMessageCountryCode != null && senderLastMessageCountryCode != null &&
-                                !userLastMessageCountryCode.equals(senderLastMessageCountryCode)) {
-                            translateMessage(model.getMessage(), senderLastMessageCountryCode, userLastMessageCountryCode, translatedMessage -> {
-                                new Handler(Looper.getMainLooper()).post(() -> {
-                                    if (translatedMessage != null) {
-                                        holder.leftChatTextview.setText(translatedMessage);
-                                    } else {
-                                        holder.leftChatTextview.setText(model.getMessage());
-                                    }
+            if (model.getTranslatedMessage() != null) {
+                holder.leftChatTextview.setText(model.getTranslatedMessage());
+            } else {
+                if (senderId != null && currentUserID != null) {
+                    FirebaseUtil.getUserLastMessageCountryCode(currentUserID, userLastMessageCountryCode -> {
+                        FirebaseUtil.getUserLastMessageCountryCode(senderId, senderLastMessageCountryCode -> {
+                            if (userLastMessageCountryCode != null && senderLastMessageCountryCode != null &&
+                                    !userLastMessageCountryCode.equals(senderLastMessageCountryCode)) {
+                                translateMessage(model.getMessage(), senderLastMessageCountryCode, userLastMessageCountryCode, translatedMessage -> {
+                                    new Handler(Looper.getMainLooper()).post(() -> {
+                                        if (translatedMessage != null) {
+                                            holder.leftChatTextview.setText(translatedMessage);
+                                        } else {
+                                            holder.leftChatTextview.setText(model.getMessage());
+                                        }
+                                    });
                                 });
-                            });
-                        } else {
-                            holder.leftChatTextview.setText(model.getMessage());
-                        }
+                            } else {
+                                holder.leftChatTextview.setText(model.getMessage());
+                            }
+                        });
                     });
-                });
+                }
             }
         }
     }
-
-
-
 
 
     @Override

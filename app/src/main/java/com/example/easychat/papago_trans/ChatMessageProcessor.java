@@ -8,6 +8,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.example.easychat.CountryChatroomMapper;
 import com.example.easychat.model.ChatMessageModel;
 import com.example.easychat.utils.FirebaseUtil;
 
@@ -51,16 +52,20 @@ public class ChatMessageProcessor {
 
     public static void sendMessageWithTranslation(ChatMessageModel chatMessage, String senderCountryCode, String receiverCountryCode) {
         String senderId = chatMessage.getSenderId();
-        String receiverId = chatMessage.getReceiverId(); // chatMessage 객체에 수신자 ID가 이미 포함되어 있습니다.
+        String receiverId = chatMessage.getReceiverId();
 
         if (receiverId == null || receiverId.isEmpty()) {
             Log.e(TAG, "Receiver ID cannot be null or empty");
             return;
         }
 
-        String chatroomId = FirebaseUtil.getChatroomId(senderId, senderCountryCode, receiverId, receiverCountryCode);
+        String chatroomIdSender = CountryChatroomMapper.getChatroomIdForCountry(senderCountryCode) + "_" + CountryChatroomMapper.getChatroomIdForCountry(receiverCountryCode);
+        String chatroomIdReceiver = CountryChatroomMapper.getChatroomIdForCountry(receiverCountryCode) + "_" + CountryChatroomMapper.getChatroomIdForCountry(senderCountryCode);
 
-        // 번역 요청
+        // 원본 메시지 저장
+        // FirebaseUtil.saveMessage(chatroomIdSender, chatMessage);
+
+        // 번역 요청 및 번역 메시지 저장
         SelectLanguage language = new SelectLanguage(senderCountryCode, receiverCountryCode, chatMessage.getMessage());
         PapagoTranslator.translate(language, new Callback() {
             @Override
@@ -80,11 +85,10 @@ public class ChatMessageProcessor {
                     JSONObject jsonObject = new JSONObject(responseBody);
                     String translatedText = jsonObject.getJSONObject("message").getJSONObject("result").getString("translatedText");
 
-                    // 번역된 메시지를 chatMessage 객체에 설정합니다.
                     chatMessage.setTranslatedMessage(translatedText);
 
-                    // 번역된 메시지를 저장하고 전송합니다.
-                    FirebaseUtil.saveAndSendTranslatedMessage(chatroomId, chatMessage.getMessage(), translatedText, senderId, receiverId);
+                    // 번역된 메시지를 수신자의 채팅방에 저장
+                    FirebaseUtil.saveMessage(chatroomIdReceiver, chatMessage);
 
                 } catch (Exception e) {
                     Log.e(TAG, "Failed to parse translation response", e);
@@ -92,6 +96,7 @@ public class ChatMessageProcessor {
             }
         });
     }
+
 
 
 

@@ -21,6 +21,8 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.Transaction;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.storage.FirebaseStorage;
@@ -242,7 +244,6 @@ public class FirebaseUtil {
 
 
     // 메시지 모델 클래스
-    // Message 클래스에 번역 여부를 나타내는 boolean 필드 추가
     public static class Message {
         private String message;
         private String translatedMessage;
@@ -291,6 +292,50 @@ public class FirebaseUtil {
             this.senderId = senderId;
         }
     }
+
+    public static void saveMessage(String chatroomId, ChatMessageModel chatMessage) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("chatrooms").document(chatroomId).collection("messages").add(chatMessage)
+                .addOnSuccessListener(documentReference -> Log.d(TAG, "Message saved successfully"))
+                .addOnFailureListener(e -> Log.e(TAG, "Error saving message", e));
+    }
+
+    public static void updateMessage(String translatedMessage, Timestamp timestamp) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        CollectionReference messagesRef = db.collection("messages");
+
+        // 메시지를 timestamp를 기준으로 내림차순으로 정렬하여 가장 최근 메시지를 가져옵니다.
+        messagesRef.orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(1)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        QuerySnapshot querySnapshot = task.getResult();
+                        if (querySnapshot != null && !querySnapshot.isEmpty()) {
+                            DocumentSnapshot documentSnapshot = querySnapshot.getDocuments().get(0);
+                            String messageId = documentSnapshot.getId();
+
+                            // 메시지 업데이트
+                            messagesRef.document(messageId).update(
+                                    "translatedMessage", translatedMessage,
+                                    "timestamp", timestamp
+                            ).addOnSuccessListener(aVoid -> {
+                                Log.d("FirebaseUtil", "메시지 업데이트 성공: " + messageId);
+                            }).addOnFailureListener(e -> {
+                                Log.e("FirebaseUtil", "메시지 업데이트 실패: " + messageId, e);
+                            });
+                        } else {
+                            Log.e("FirebaseUtil", "가장 최근 메시지를 찾을 수 없습니다.");
+                        }
+                    } else {
+                        Log.e("FirebaseUtil", "메시지를 가져오는 동안 오류가 발생했습니다.", task.getException());
+                    }
+                });
+    }
+
+
+
+
 
     // 번역되지 않은 메시지를 저장하는 메서드
     public static void saveOriginalMessage(String senderId, String receiverId, String message, String senderCountryCode, String receiverCountryCode) {
@@ -455,43 +500,50 @@ public class FirebaseUtil {
                 .addOnFailureListener(e -> Log.e(TAG, "Error sending message: " + e.getMessage()));
     }
 
-    public static void getOrCreateChatroomModel(String chatroomId, String otherUserId, OnChatroomModelListener listener) {
-        FirebaseUtil.getChatroomReference(chatroomId).get().addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                DocumentSnapshot document = task.getResult();
-                if (!document.exists()) {
-                    // 생성할 때 마지막 메시지는 초기화하지 않습니다.
-                    ChatroomModel chatroomModel = new ChatroomModel(
-                            chatroomId,
-                            Arrays.asList(FirebaseUtil.currentUserId(), otherUserId),
-                            Timestamp.now(),
-                            FirebaseUtil.currentUserId(), // 현재 사용자가 마지막 메시지를 보냄
-                            "" // 초기에 마지막 메시지는 없음
-                    );
-                    FirebaseUtil.getChatroomReference(chatroomId).set(chatroomModel)
-                            .addOnSuccessListener(aVoid -> {
-                                Log.d(TAG, "ChatroomModel created");
-                                listener.onChatroomModel(chatroomModel);
-                            })
-                            .addOnFailureListener(e -> {
-                                Log.e(TAG, "Failed to create ChatroomModel: " + e.getMessage());
-                                listener.onChatroomModel(null);
-                            });
-                } else {
-                    ChatroomModel chatroomModel = document.toObject(ChatroomModel.class);
-                    listener.onChatroomModel(chatroomModel);
-                }
+    public static void getOrCreateChatroomModel(String chatroomId, String otherUserId, OnChatroomModelReceived callback) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        DocumentReference chatroomRef = db.collection("chatrooms").document(chatroomId);
+
+        chatroomRef.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
+                // 이미 존재하는 채팅방 모델을 가져옵니다
+                ChatroomModel chatroomModel = task.getResult().toObject(ChatroomModel.class);
+                callback.onReceived(chatroomModel);
             } else {
-                Log.e(TAG, "Failed to get ChatroomModel: " + task.getException().getMessage());
-                listener.onChatroomModel(null);
+                // 새로운 채팅방 모델을 생성합니다
+                List<String> userIds = Arrays.asList(FirebaseUtil.currentUserId(), otherUserId);
+                ChatroomModel newChatroomModel = new ChatroomModel(chatroomId, userIds, null, null, null);
+                chatroomRef.set(newChatroomModel).addOnCompleteListener(createTask -> {
+                    if (createTask.isSuccessful()) {
+                        callback.onReceived(newChatroomModel);
+                    } else {
+                        callback.onReceived(null);
+                    }
+                });
             }
         });
     }
 
+    public static void updateChatroomModel(String chatroomId, ChatMessageModel chatMessage) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        DocumentReference chatroomRef = db.collection("chatrooms").document(chatroomId);
+
+        chatroomRef.update("lastMessage", chatMessage.getMessage(),
+                        "lastMessageSenderId", chatMessage.getSenderId(),
+                        "lastMessageTimestamp", FieldValue.serverTimestamp())
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful()) {
+                        Log.e("FirebaseUtil", "채팅방 모델 업데이트에 실패했습니다: " + chatroomId);
+                    }
+                });
+    }
 
 
-    public interface OnChatroomModelListener {
-        void onChatroomModel(ChatroomModel chatroomModel);
+
+
+    // 채팅방 모델을 받아오는 콜백 인터페이스
+    public interface OnChatroomModelReceived {
+        void onReceived(ChatroomModel chatroomModel);
     }
 
 

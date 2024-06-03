@@ -7,16 +7,6 @@ public class ChatMessageModel {
     private String senderId;
     private String receiverId;
     private Timestamp timestamp;
-    private String translated;
-
-    public String getTranslated() {
-        return translated;
-    }
-
-    public void setTranslated(String translated) {
-        this.translated = translated;
-    }
-
     private String translatedMessage;
 
     // 기본 생성자와 모든 필드를 초기화하는 생성자
