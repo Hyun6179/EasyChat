@@ -8,7 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 public class ChatRoomManager {
-    public static void main(String[] args) {
+
+    // ChatRoomManager의 기능을 시작하는 메서드
+    public static void start() {
         // 사용자 정보를 가져와서 처리하는 코드를 작성합니다.
         List<UserModel> users = getUsersFromDatabase(); // 데이터베이스에서 사용자 정보를 가져옴
 
@@ -21,10 +23,9 @@ public class ChatRoomManager {
         }
     }
 
-    // 데이터베이스에서 사용자 정보를 가져오는 메서드
+    // 데이터베이스에서 사용자 정보를 가져오는 메서드 (실제 데이터베이스 연동 코드가 필요합니다)
     private static List<UserModel> getUsersFromDatabase() {
-        // 실제 데이터베이스 연동 코드를 작성합니다.
-        // 여기서는 임시로 빈 리스트를 반환합니다.
+        // 여기에서는 임시로 빈 리스트를 반환합니다.
         return new ArrayList<>();
     }
 
@@ -40,8 +41,7 @@ public class ChatRoomManager {
 
     // countryCode에 따라 채팅방을 생성하는 메서드
     private static void createChatRoom(String countryCode) {
-        // 실제로 채팅방을 생성하는 코드를 작성해야 합니다.
-        // 여기서는 단순히 콘솔에 메시지를 출력하는 코드를 작성합니다.
+        // 여기에서는 채팅방을 생성하는 실제 코드를 작성할 수 있습니다.
         System.out.println("Chat room created for country code: " + countryCode);
     }
 }

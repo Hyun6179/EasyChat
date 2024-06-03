@@ -43,17 +43,40 @@ public class ChatRecentAdapter extends FirestoreRecyclerAdapter<ChatMessageModel
     }
     @Override
     protected void onBindViewHolder(@NonNull ChatModelViewHolder holder, int position, @NonNull ChatMessageModel model) {
-        // 사용자가 오른쪽에 보낸 메시지인 경우
-        if (model.getSenderId().equals(FirebaseUtil.currentUserId())) {
+        String currentUserID = FirebaseUtil.currentUserId();
+        String senderId = model.getSenderId();
+
+        if (senderId != null && currentUserID != null && senderId.equals(currentUserID)) {
             holder.leftChatLayout.setVisibility(View.GONE);
             holder.rightChatLayout.setVisibility(View.VISIBLE);
             holder.rightChatTextview.setText(model.getMessage());
-        } else { // 사용자가 왼쪽에 보낸 메시지인 경우
+        } else {
             holder.leftChatLayout.setVisibility(View.VISIBLE);
             holder.rightChatLayout.setVisibility(View.GONE);
-            holder.leftChatTextview.setText(model.getMessage());
+
+            if (senderId != null && currentUserID != null) {
+                FirebaseUtil.getUserLastMessageCountryCode(currentUserID, userLastMessageCountryCode -> {
+                    FirebaseUtil.getUserLastMessageCountryCode(senderId, senderLastMessageCountryCode -> {
+                        if (userLastMessageCountryCode != null && senderLastMessageCountryCode != null &&
+                                !userLastMessageCountryCode.equals(senderLastMessageCountryCode)) {
+                            translateMessage(model.getMessage(), senderLastMessageCountryCode, userLastMessageCountryCode, translatedMessage -> {
+                                new Handler(Looper.getMainLooper()).post(() -> {
+                                    if (translatedMessage != null) {
+                                        holder.leftChatTextview.setText(translatedMessage);
+                                    } else {
+                                        holder.leftChatTextview.setText(model.getMessage());
+                                    }
+                                });
+                            });
+                        } else {
+                            holder.leftChatTextview.setText(model.getMessage());
+                        }
+                    });
+                });
+            }
         }
     }
+
 
 
 
@@ -67,6 +90,7 @@ public class ChatRecentAdapter extends FirestoreRecyclerAdapter<ChatMessageModel
         TextView leftChatTextview;
         TextView rightChatTextview;
         LinearLayout leftChatLayout, rightChatLayout;
+
         public ChatModelViewHolder(@NonNull View itemView) {
             super(itemView);
             leftChatTextview = itemView.findViewById(R.id.left_chat_textview);
@@ -74,10 +98,9 @@ public class ChatRecentAdapter extends FirestoreRecyclerAdapter<ChatMessageModel
             leftChatLayout = itemView.findViewById(R.id.left_chat_layout);
             rightChatLayout = itemView.findViewById(R.id.right_chat_layout);
         }
-
     }
 
-    private void translateMessage(String message, String sourceLang, String targetLang, TranslateCallback callback, Context context) {
+    private void translateMessage(String message, String sourceLang, String targetLang, TranslateCallback callback) {
         PapagoTranslator.translate(new SelectLanguage(sourceLang, targetLang, message), new okhttp3.Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
@@ -92,9 +115,7 @@ public class ChatRecentAdapter extends FirestoreRecyclerAdapter<ChatMessageModel
                     JSONObject jsonObject = new JSONObject(responseBody);
                     String translatedMessage = jsonObject.getJSONObject("message").getJSONObject("result").getString("translatedText");
 
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        callback.onTranslate(translatedMessage);
-                    });
+                    callback.onTranslate(translatedMessage);
                 } catch (Exception e) {
                     e.printStackTrace();
                     callback.onTranslate(message);

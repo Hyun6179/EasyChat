@@ -1,12 +1,14 @@
 package com.example.easychat.model;
 
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.FieldValue;
 
 import java.util.List;
+
 public class ChatroomModel {
     String chatroomId;
     List<String> userIds;
-    Timestamp lastMessageTimestamp;
+    Object lastMessageTimestamp;
     String lastMessageSenderId;
     String lastMessage;
 
@@ -16,11 +18,15 @@ public class ChatroomModel {
     public ChatroomModel(String chatroomId, List<String> userIds, Timestamp lastMessageTimestamp, String lastMessageSenderId, String lastMessage) {
         this.chatroomId = chatroomId;
         this.userIds = userIds;
-        this.lastMessageTimestamp = lastMessageTimestamp;
-        this.lastMessageSenderId = lastMessageSenderId;
-        this.lastMessage = lastMessage;
+        // Firestore의 서버 타임스탬프 사용
+        this.lastMessageTimestamp = lastMessageTimestamp != null ? lastMessageTimestamp : FieldValue.serverTimestamp();
+        this.lastMessageSenderId = lastMessageSenderId != null ? lastMessageSenderId : "";
+        this.lastMessage = lastMessage != null ? lastMessage : "";
     }
 
+
+
+    // getter, setter 메서드 추가
     public String getChatroomId() {
         return chatroomId;
     }
@@ -37,7 +43,7 @@ public class ChatroomModel {
         this.userIds = userIds;
     }
 
-    public Timestamp getLastMessageTimestamp() {
+    public Object getLastMessageTimestamp() {
         return lastMessageTimestamp;
     }
 
@@ -60,5 +66,4 @@ public class ChatroomModel {
     public void setLastMessage(String lastMessage) {
         this.lastMessage = lastMessage;
     }
-
 }

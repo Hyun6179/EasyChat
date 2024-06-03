@@ -1,5 +1,7 @@
 package com.example.easychat;
 
+import static android.content.ContentValues.TAG;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -55,11 +57,47 @@ public class LoginUsernameActivity extends AppCompatActivity {
         if (userModel != null) {
             userModel.setUsername(username);
             userModel.setCountryCode(countryCode); // userModel에 countryCode가 null값으로 입력되어 마지막에 추가로 입력하는 과정
+            updateUserModel(userModel);
         } else {
-            userModel = new UserModel(phoneNumber, username, Timestamp.now(), FirebaseUtil.currentUserId(), countryCode); // 수정: countryCode 추가\
-            Log.d("CountryCode", countryCode);
-        }
+            // FCM 토큰 가져오기
+            FirebaseUtil.getUserModel(FirebaseUtil.currentUserId(), new FirebaseUtil.UserModelCallback() {
+                @Override
+                public void onUserModelReceived(UserModel user) {
+                    if (user != null) {
+                        userModel = user;
+                        userModel.setUsername(username);
+                        userModel.setCountryCode(countryCode);
+                        updateUserModel(userModel);
+                    } else {
+                        // FCM 토큰을 받은 후 사용자 모델 생성 및 저장
+                        FirebaseUtil.getFCMToken(new FirebaseUtil.FcmTokenCallback() {
+                            @Override
+                            public void onFcmTokenReceived(String token) {
+                                if (token != null) {
+                                    // FCM 토큰을 받은 후 사용자 모델 생성 및 저장
+                                    userModel = new UserModel(username, phoneNumber, FirebaseUtil.currentUserId(), token, countryCode, Timestamp.now());
+                                    updateUserModel(userModel);
+                                } else {
+                                    // FCM 토큰을 받지 못한 경우 에러 처리
+                                    Log.e(TAG, "Failed to retrieve FCM token");
+                                }
+                            }
 
+                            @Override
+                            public void onTokenReceived(String fcmToken) {
+                                // Not used in this context
+                            }
+                        });
+                    }
+                }
+            });
+        }
+    }
+
+
+
+    // 사용자 모델을 Firebase에 업데이트하는 메서드
+    private void updateUserModel(UserModel userModel) {
         FirebaseUtil.currentUserDetails().set(userModel).addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
             public void onComplete(@NonNull Task<Void> task) {
@@ -72,6 +110,7 @@ public class LoginUsernameActivity extends AppCompatActivity {
             }
         });
     }
+
 
     void getUsername() {
         setInProgress(true);

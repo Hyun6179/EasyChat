@@ -1,5 +1,7 @@
 package com.example.easychat;
 
+import static android.content.ContentValues.TAG;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
@@ -11,6 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,7 +29,10 @@ import com.example.easychat.utils.FirebaseUtil;
 import com.github.dhaval2404.imagepicker.ImagePicker;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.storage.StorageException;
 
@@ -129,53 +135,52 @@ public class ProfileFragment extends Fragment {
                         AndroidUtil.showToast(getContext(), "Update failed");
                     }
                 });
-    }
-
-    void getUserData(){
+    }void getUserData() {
         setInProgress(true);
 
-        // 기본 이미지 설정
-        AndroidUtil.setProfilePic(getContext(), R.drawable.ls_icon, profilePic);
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        DocumentReference userRef = db.collection("users").document(userId);
 
-        FirebaseUtil.getCurrentProfilePicStorageRef().getDownloadUrl()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        Uri uri = task.getResult();
-                        AndroidUtil.setProfilePic(getContext(), uri, profilePic);
-                    } else {
-                        handleStorageException(task);
-                    }
-                });
-
-        FirebaseUtil.currentUserDetails().get().addOnCompleteListener(task -> {
+        userRef.get().addOnCompleteListener(task -> {
             setInProgress(false);
             if (task.isSuccessful()) {
-                currentUserModel = task.getResult().toObject(UserModel.class);
-                if (currentUserModel != null) {
-                    usernameInput.setText(currentUserModel.getUsername());
-                    phoneInput.setText(currentUserModel.getPhone());
-
-
+                DocumentSnapshot document = task.getResult();
+                if (document.exists()) {
+                    currentUserModel = document.toObject(UserModel.class);
+                    if (currentUserModel != null) {
+                        // Firestore에서 프로필 사진을 가져와서 설정
+                        FirebaseUtil.getCurrentProfilePicStorageRef().getDownloadUrl().addOnCompleteListener(downloadTask -> {
+                            if (downloadTask.isSuccessful()) {
+                                Uri profilePicUri = downloadTask.getResult();
+                                AndroidUtil.setProfilePic(getContext(), profilePicUri, profilePic);
+                            } else {
+                                handleStorageException(downloadTask);
+                            }
+                        });
+                    } else {
+                        // 사용자 모델이 없는 경우 처리
+                    }
+                } else {
+                    // 문서가 없는 경우 처리
                 }
+            } else {
+                Log.d(TAG, "Error getting user document: ", task.getException());
             }
         });
     }
 
+
     void handleStorageException(Task<Uri> task) {
-        Exception exception = task.getException();
-        if (exception instanceof StorageException) {
-            StorageException se = (StorageException) exception;
-            int errorCode = se.getErrorCode();
-            if (errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) {
-                // 프로필 사진이 없는 경우 기본 이미지 설정
-                AndroidUtil.setProfilePic(getContext(), R.drawable.ls_icon, profilePic);
-            } else {
-                AndroidUtil.setProfilePic(getContext(), R.drawable.ls_icon, profilePic);
-            }
-        } else {
-            AndroidUtil.setProfilePic(getContext(), R.drawable.ls_icon, profilePic);
+        if (task.isSuccessful()) {
+            // 프로필 사진을 성공적으로 가져온 경우 아무런 작업을 수행하지 않음
+            return;
         }
+
+        // 기본 이미지 설정
+        AndroidUtil.setProfilePic(getContext(), R.drawable.ls_icon, profilePic);
     }
+
 
     void setInProgress(boolean inProgress){
         if (inProgress) {

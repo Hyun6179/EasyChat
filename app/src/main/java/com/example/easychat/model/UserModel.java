@@ -3,32 +3,22 @@ package com.example.easychat.model;
 import com.google.firebase.Timestamp;
 
 public class UserModel {
-    private String phone;
     private String username;
-    private Timestamp createdTimestamp;
+    private String phone;
     private String userId;
     private String fcmToken;
     private String countryCode;
+    private Timestamp createdTimestamp;
 
-    public UserModel() {
-    }
+    public UserModel() {}
 
-    public UserModel(String phone, String username, Timestamp createdTimestamp, String userId, String countryCode) {
-        this.phone = phone;
+    public UserModel(String username, String phone, String userId, String fcmToken, String countryCode, Timestamp createdTimestamp) {
         this.username = username;
-        this.createdTimestamp = createdTimestamp;
-        this.userId = userId;
-        this.countryCode = countryCode;
-    }
-
-
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
         this.phone = phone;
+        this.userId = userId;
+        this.fcmToken = fcmToken;
+        this.countryCode = countryCode;
+        this.createdTimestamp = createdTimestamp;
     }
 
     public String getUsername() {
@@ -39,12 +29,12 @@ public class UserModel {
         this.username = username;
     }
 
-    public Timestamp getCreatedTimestamp() {
-        return createdTimestamp;
+    public String getPhone() {
+        return phone;
     }
 
-    public void setCreatedTimestamp(Timestamp createdTimestamp) {
-        this.createdTimestamp = createdTimestamp;
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     public String getUserId() {
@@ -67,9 +57,15 @@ public class UserModel {
         return countryCode;
     }
 
-    public void setCountryCode(String languageCode) {
-        this.countryCode = languageCode;
+    public void setCountryCode(String countryCode) {
+        this.countryCode = countryCode;
     }
 
+    public Timestamp getCreatedTimestamp() {
+        return createdTimestamp;
+    }
 
+    public void setCreatedTimestamp(Timestamp createdTimestamp) {
+        this.createdTimestamp = createdTimestamp;
+    }
 }

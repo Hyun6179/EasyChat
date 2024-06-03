@@ -1,6 +1,7 @@
 package com.example.easychat;
 
-import android.os.Bundle;
+import
+        android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -35,21 +36,20 @@ public class ChatFragment extends Fragment {
         return view;
     }
 
+    // ChatFragment의 setupRecyclerView 메서드 수정
     private void setupRecyclerView() {
-        // Query to fetch recent chatrooms where the current user is involved
         Query query = FirebaseUtil.allChatroomCollectionReference()
                 .whereArrayContains("userIds", FirebaseUtil.currentUserId())
                 .orderBy("lastMessageTimestamp", Query.Direction.DESCENDING);
 
-        // Configure options for FirestoreRecyclerAdapter
         FirestoreRecyclerOptions<ChatroomModel> options = new FirestoreRecyclerOptions.Builder<ChatroomModel>()
                 .setQuery(query, ChatroomModel.class).build();
 
-        // Create adapter with options and set it to RecyclerView
         adapter = new RecentChatRecyclerAdapter(options, getContext());
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
     }
+
 
     @Override
     public void onStart() {

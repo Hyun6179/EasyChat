@@ -9,37 +9,40 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.example.easychat.model.UserModel;
+import com.google.firebase.Timestamp;
 
 public class AndroidUtil {
 
-   public static  void showToast(Context context,String message){
-       Toast.makeText(context,message,Toast.LENGTH_LONG).show();
+    public static void showToast(Context context, String message) {
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show();
     }
 
-    public static void passUserModelAsIntent(Intent intent, UserModel model){
-       intent.putExtra("username",model.getUsername());
-       intent.putExtra("phone",model.getPhone());
-       intent.putExtra("userId",model.getUserId());
-        intent.putExtra("fcmToken",model.getFcmToken());
-        intent.putExtra("countryCode",model.getCountryCode());
+    public static void passUserModelAsIntent(Intent intent, UserModel model) {
+        intent.putExtra("username", model.getUsername());
+        intent.putExtra("phone", model.getPhone());
+        intent.putExtra("userId", model.getUserId());
+        intent.putExtra("countryCode", model.getCountryCode());
+        intent.putExtra("createdTimestamp", model.getCreatedTimestamp());
+    }
+    public static UserModel getUserModelFromIntent(Intent intent) {
+        String username = intent.getStringExtra("username");
+        String phoneNumber = intent.getStringExtra("phone");
+        String userId = intent.getStringExtra("userId");
+        String token = intent.getStringExtra("token");
+        String countryCode = intent.getStringExtra("countryCode");
 
+        // 현재 시간으로 타임스탬프를 설정합니다.
+        Timestamp timestamp = Timestamp.now();
+
+        // UserModel 객체를 생성하여 반환합니다.
+        return new UserModel(username, phoneNumber, userId, token, countryCode, timestamp);
     }
 
-    public static UserModel getUserModelFromIntent(Intent intent){
-        UserModel userModel = new UserModel();
-        userModel.setUsername(intent.getStringExtra("username"));
-        userModel.setPhone(intent.getStringExtra("phone"));
-        userModel.setUserId(intent.getStringExtra("userId"));
-        userModel.setFcmToken(intent.getStringExtra("fcmToken"));
-        userModel.setCountryCode(intent.getStringExtra("countryCode"));
-        return userModel;
-    }
 
-    public static void setProfilePic(Context context, Uri imageUri, ImageView imageView){
+    public static void setProfilePic(Context context, Uri imageUri, ImageView imageView) {
         Glide.with(context).load(imageUri).apply(RequestOptions.circleCropTransform()).into(imageView);
     }
 
-    // Drawable 리소스를 이용해 프로필 사진을 설정하는 메서드
     public static void setProfilePic(Context context, int drawableResId, ImageView imageView) {
         Glide.with(context).load(drawableResId).into(imageView);
     }
